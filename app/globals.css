@@ -1,26 +1,81 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* 2ちゃんねる風デザイン */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #efefef; /* あの灰色 */
+  font-family: "MS PGothic", "ＭＳ Ｐゴシック", "IPAMonaPGothic", "Mona", sans-serif;
+  color: #000;
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  background-color: #efefef;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 {
+  color: #c00; /* 伝統の赤タイトル */
+  font-size: 24px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+a {
+  color: #00e;
+  text-decoration: underline;
+}
+
+/* スレッド一覧のリンク */
+a:visited {
+  color: #800080; /* 訪問済みは紫 */
+}
+
+/* フォーム周り */
+input, textarea {
+  border: 1px solid #ccc;
+  background-color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+button {
+  background-color: #ddd;
+  border: 1px solid #999;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+button:hover {
+  background-color: #ccc;
+}
+
+/* 書き込みの見た目 */
+.post-header {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.post-number {
+  color: #000;
+}
+
+.post-name {
+  color: #228b22; /* 名前の緑色 */
+  font-weight: bold;
+}
+
+.post-date {
+  color: #666;
+}
+
+.post-content {
+  margin-left: 20px;
+  margin-bottom: 20px;
+  font-size: 16px;
+  line-height: 1.4;
+  white-space: pre-wrap; /* 改行をそのまま表示 */
 }
