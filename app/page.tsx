@@ -21,7 +21,7 @@ export default async function Home() {
 
   return (
     <main style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ color: '#c00', borderBottom: '1px solid #ccc' }}>Next.js ちゃんねる</h1>
+      <h1 style={{ color: '#c00', borderBottom: '1px solid #ccc' }}>MNSKちゃんねる</h1>
       
       {/* ▼ここがスレ立てフォームだお！ */}
       <div style={{ backgroundColor: '#efefef', padding: '15px', marginBottom: '30px', border: '1px solid #ccc' }}>
