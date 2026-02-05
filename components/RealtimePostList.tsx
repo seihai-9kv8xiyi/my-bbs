@@ -1,35 +1,20 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react'; // ← useRefを追加
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { deletePost, votePost } from '@/app/actions';
 import toast, { Toaster } from 'react-hot-toast';
 
-// リンク変換関数
+// ... (formatContent関数などはそのまま変更なし) ...
 function formatContent(content: string) {
   const parts = content.split(/(>>\d+|https?:\/\/[^\s]+)/g);
   return parts.map((part, index) => {
     if (part.match(/^>>\d+$/)) {
       const number = part.replace('>>', '');
-      return (
-        <a key={index} href={`#post-${number}`} style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>
-          {part}
-        </a>
-      );
+      return <a key={index} href={`#post-${number}`} style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>{part}</a>;
     }
     if (part.match(/^https?:\/\/[^\s]+$/)) {
-      return (
-        <a 
-          key={index} href={part} target="_blank" rel="noopener noreferrer"
-          style={{ color: '#0066cc', textDecoration: 'underline', wordBreak: 'break-all' }}
-          onClick={(e) => {
-            const isConfirmed = window.confirm(`外部サイトへ移動しますか？\n\nリンク先：\n${part}`);
-            if (!isConfirmed) e.preventDefault();
-          }}
-        >
-          {part}
-        </a>
-      );
+      return <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: '#0066cc', textDecoration: 'underline', wordBreak: 'break-all' }} onClick={(e) => { if (!window.confirm(`外部サイトへ移動しますか？\n\n${part}`)) e.preventDefault(); }}>{part}</a>;
     }
     return part;
   });
@@ -46,90 +31,81 @@ type Post = {
   thread_id: string;
 };
 
-export default function RealtimePostList({ initialPosts, threadId }: { initialPosts: Post[], threadId: string }) {
+// ▼ Propsに threadTitle を追加したお！
+export default function RealtimePostList({ initialPosts, threadId, threadTitle }: { initialPosts: Post[], threadId: string, threadTitle: string }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
-  
-  // ▼ 1. ミュート状態管理（画面表示用）
   const [isMuted, setIsMuted] = useState(false);
-  
-  // ▼ 2. 最新の状態を保持するための「Ref」（ここが修正ポイント！）
-  // これを使わないと、イベントリスナーの中で古い状態（false）が使われ続けてしまうんだお
   const isMutedRef = useRef(false);
 
-  // ▼ 3. ボタンが押されて isMuted が変わったら、Refの中身も更新する
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
 
   const playSound = () => {
-    // ▼ 4. Ref（最新の状態）を見て判断する！
     if (isMutedRef.current) return;
-
     try {
       const audio = new Audio('/res.mp3'); 
       audio.volume = 0.5;
       audio.play().catch(() => {});
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   useEffect(() => {
     const channel = supabase
       .channel('realtime posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` }, (payload) => {
-        
         if (payload.eventType === 'INSERT') {
           const newPost = payload.new as Post;
-          setPosts((currentPosts) => [...currentPosts, newPost]);
-          
-          // ここで playSound を呼ぶとき、Ref経由なら最新のミュート設定が反映されるお！
+          setPosts((prev) => [...prev, newPost]);
           playSound();
-          
-          toast.success(`「${newPost.name}」さんが書き込んだお！`, {
-            duration: 4000,
-            position: 'bottom-right',
-            style: { border: '1px solid #713200', padding: '16px', color: '#713200' },
-            iconTheme: { primary: '#713200', secondary: '#FFFAEE' },
-          });
+          toast.success(`「${newPost.name}」さんが書き込みました！`, { duration: 4000, position: 'bottom-right', style: { border: '1px solid #713200', padding: '16px', color: '#713200' }, iconTheme: { primary: '#713200', secondary: '#FFFAEE' } });
         }
-        
         if (payload.eventType === 'DELETE') {
-          setPosts((currentPosts) => currentPosts.filter(post => post.id !== payload.old.id));
+          setPosts((prev) => prev.filter(p => p.id !== payload.old.id));
         }
-
         if (payload.eventType === 'UPDATE') {
-          setPosts((currentPosts) => currentPosts.map(post => 
-            post.id === payload.new.id ? { ...post, ...payload.new } as Post : post
-          ));
+          setPosts((prev) => prev.map(p => p.id === payload.new.id ? { ...p, ...payload.new } as Post : p));
         }
       })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [threadId]);
 
   return (
     <div style={{ marginBottom: '50px' }}>
       <Toaster />
 
-      {/* ミュートボタン */}
-      <div style={{ marginBottom: '10px', textAlign: 'right' }}>
+      {/* ▼ ここを変更！タイトルと書き込み数を横並びに！ */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        borderBottom: '2px solid #c00', 
+        marginBottom: '20px', 
+        paddingBottom: '10px' 
+      }}>
+        {/* スレタイ ＋ カッコ書きの数字 */}
+        <h1 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
+          {threadTitle}
+          <span style={{ marginLeft: '10px', fontSize: '16px', color: '#c00', fontWeight: 'normal' }}>
+            ({posts.length})
+          </span>
+        </h1>
+
+        {/* ミュートボタン */}
         <button
           onClick={() => setIsMuted(!isMuted)}
           style={{
             padding: '5px 10px',
-            fontSize: '14px',
+            fontSize: '12px',
             cursor: 'pointer',
-            backgroundColor: isMuted ? '#ccc' : '#4caf50',
+            backgroundColor: isMuted ? '#999' : '#4caf50',
             color: 'white',
             border: 'none',
             borderRadius: '5px'
           }}
         >
-          {isMuted ? '🔇 通知音: OFF' : '🔊 通知音: ON'}
+          {isMuted ? '🔇' : '🔊'}
         </button>
       </div>
 
@@ -137,6 +113,7 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
         const postNumber = index + 1;
         return (
           <div key={post.id} id={`post-${postNumber}`} style={{ marginBottom: '15px', borderBottom: '1px dotted #ccc', paddingBottom: '10px' }}>
+            {/* 投稿の中身（変更なし） */}
             <div className="post-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 {postNumber} ：
@@ -144,26 +121,12 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
                 <span style={{ fontSize: '12px', color: '#666' }}> (ID: {post.client_id || '???'}) </span>
                 ：{new Date(post.created_at).toLocaleString('ja-JP')}
               </div>
-              
-              <button 
-                onClick={() => votePost(post.id, threadId)}
-                style={{ 
-                  background: 'none', border: '1px solid #ddd', borderRadius: '15px',
-                  padding: '2px 8px', cursor: 'pointer', fontSize: '12px',
-                  color: '#e0245e', display: 'flex', alignItems: 'center', gap: '4px'
-                }}
-              >
-                <span>♥</span> {post.likes || 0}
-              </button>
+              <button onClick={() => votePost(post.id, threadId)} style={{ background: 'none', border: '1px solid #ddd', borderRadius: '15px', padding: '2px 8px', cursor: 'pointer', fontSize: '12px', color: '#e0245e', display: 'flex', alignItems: 'center', gap: '4px' }}><span>♥</span> {post.likes || 0}</button>
             </div>
-            
             <div style={{ marginLeft: '20px', marginTop: '5px' }}>
-              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '10px', wordWrap: 'break-word' }}>
-                {formatContent(post.content)}
-              </div>
+              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '10px', wordWrap: 'break-word' }}>{formatContent(post.content)}</div>
               {post.image_url && <img src={post.image_url} alt="投稿画像" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '4px' }} />}
             </div>
-
             <details style={{ marginTop: '5px', fontSize: '12px', color: '#666', marginLeft: '20px' }}>
               <summary style={{ cursor: 'pointer' }}>[削除]</summary>
               <form action={deletePost} style={{ display: 'inline-flex', gap: '5px', marginTop: '5px' }}>

@@ -64,3 +64,15 @@ export async function votePost(post_id: number, thread_id: string) {
     revalidatePath(`/threads/${thread_id}`);
   }
 }
+
+export async function createThread(formData: FormData) {
+  const title = formData.get('title') as string;
+
+  if (!title) return;
+
+  // DBに新しいスレッドを追加
+  await supabase.from('threads').insert({ title });
+
+  // トップページを更新して新しいスレを表示させる
+  revalidatePath('/');
+}
