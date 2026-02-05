@@ -1,10 +1,12 @@
-'use client'; // ← これが「ブラウザで動くよ」の合図
+'use client';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { deletePost, votePost } from '@/app/actions'; // さっき作ったファイルを読み込む
+import { deletePost, votePost } from '@/app/actions';
+// ▼ 1. 通知用の魔法をインポート
+import toast, { Toaster } from 'react-hot-toast';
 
-// リンク変換関数（クライアント側で動かす）
+// リンク変換関数
 function formatContent(content: string) {
   const parts = content.split(/(>>\d+)/g);
   return parts.map((part, index) => {
@@ -28,29 +30,58 @@ type Post = {
   created_at: string;
   client_id: string | null;
   likes: number;
-  thread_id: string; // これが必要
+  thread_id: string;
 };
 
 export default function RealtimePostList({ initialPosts, threadId }: { initialPosts: Post[], threadId: string }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
 
+  // ▼ 2. 音を鳴らす関数を作るお
+  const playSound = () => {
+    try {
+      const audio = new Audio('/res.mp3'); // publicフォルダの音源
+      audio.volume = 0.5; // 音量は控えめに
+      audio.play().catch((e) => {
+        // ※ブラウザは「ユーザーが一度も画面を触ってない状態」での自動再生をブロックするお。
+        // これは仕様だから気にしなくていいお。
+        console.log('音の再生がブロックされたお（画面をクリックすると鳴るようになるお）', e);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
-    // リアルタイム接続を開始！
     const channel = supabase
       .channel('realtime posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` }, (payload) => {
         
         // 新しい投稿があった時 (INSERT)
         if (payload.eventType === 'INSERT') {
-          setPosts((currentPosts) => [...currentPosts, payload.new as Post]);
+          const newPost = payload.new as Post;
+          setPosts((currentPosts) => [...currentPosts, newPost]);
+          
+          // ▼ 3. ここで通知発射！
+          playSound(); // 音を鳴らす
+          toast.success(`「${newPost.name}」さんが書き込んだお！`, {
+            duration: 4000,
+            position: 'bottom-right', // 右下に表示
+            style: {
+              border: '1px solid #713200',
+              padding: '16px',
+              color: '#713200',
+            },
+            iconTheme: {
+              primary: '#713200',
+              secondary: '#FFFAEE',
+            },
+          });
         }
         
-        // 削除された時 (DELETE)
         if (payload.eventType === 'DELETE') {
           setPosts((currentPosts) => currentPosts.filter(post => post.id !== payload.old.id));
         }
 
-        // いいね！とかで更新された時 (UPDATE)
         if (payload.eventType === 'UPDATE') {
           setPosts((currentPosts) => currentPosts.map(post => 
             post.id === payload.new.id ? { ...post, ...payload.new } as Post : post
@@ -66,6 +97,9 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
 
   return (
     <div style={{ marginBottom: '50px' }}>
+      {/* ▼ 4. 通知を表示するための場所（お皿）を設置 */}
+      <Toaster />
+
       {posts.map((post, index) => {
         const postNumber = index + 1;
         return (
@@ -78,9 +112,8 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
                 ：{new Date(post.created_at).toLocaleString('ja-JP')}
               </div>
               
-              {/* いいねボタン */}
               <button 
-                onClick={() => votePost(post.id, threadId)} // Server Actionを呼び出す
+                onClick={() => votePost(post.id, threadId)}
                 style={{ 
                   background: 'none', border: '1px solid #ddd', borderRadius: '15px',
                   padding: '2px 8px', cursor: 'pointer', fontSize: '12px',
