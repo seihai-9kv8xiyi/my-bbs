@@ -1,54 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react'; // ← useRefを追加
 import { supabase } from '@/lib/supabaseClient';
 import { deletePost, votePost } from '@/app/actions';
 import toast, { Toaster } from 'react-hot-toast';
 
-// ▼ リンク変換関数（ここを超改造したお！）
+// リンク変換関数
 function formatContent(content: string) {
-  // 1. 正規表現で「>>数字」または「URL」を見つけて分割する
-  // (https?://... は「http」か「https」で始まり、空白以外の文字が続くものを探す)
   const parts = content.split(/(>>\d+|https?:\/\/[^\s]+)/g);
-
   return parts.map((part, index) => {
-    // A. アンカーの場合（>>1）
     if (part.match(/^>>\d+$/)) {
       const number = part.replace('>>', '');
       return (
-        <a 
-          key={index} 
-          href={`#post-${number}`} 
-          style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
-        >
+        <a key={index} href={`#post-${number}`} style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>
           {part}
         </a>
       );
     }
-
-    // B. URLの場合（https://...）
     if (part.match(/^https?:\/\/[^\s]+$/)) {
       return (
         <a 
-          key={index} 
-          href={part}
-          target="_blank" // 新しいタブで開く
-          rel="noopener noreferrer" // セキュリティのおまじない（必須）
+          key={index} href={part} target="_blank" rel="noopener noreferrer"
           style={{ color: '#0066cc', textDecoration: 'underline', wordBreak: 'break-all' }}
           onClick={(e) => {
-            // ▼ ここで確認ダイアログを出す！
             const isConfirmed = window.confirm(`外部サイトへ移動しますか？\n\nリンク先：\n${part}`);
-            if (!isConfirmed) {
-              e.preventDefault(); // 「キャンセル」なら移動しない！
-            }
+            if (!isConfirmed) e.preventDefault();
           }}
         >
           {part}
         </a>
       );
     }
-
-    // C. 普通のテキスト
     return part;
   });
 }
@@ -66,8 +48,23 @@ type Post = {
 
 export default function RealtimePostList({ initialPosts, threadId }: { initialPosts: Post[], threadId: string }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
+  
+  // ▼ 1. ミュート状態管理（画面表示用）
+  const [isMuted, setIsMuted] = useState(false);
+  
+  // ▼ 2. 最新の状態を保持するための「Ref」（ここが修正ポイント！）
+  // これを使わないと、イベントリスナーの中で古い状態（false）が使われ続けてしまうんだお
+  const isMutedRef = useRef(false);
+
+  // ▼ 3. ボタンが押されて isMuted が変わったら、Refの中身も更新する
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
 
   const playSound = () => {
+    // ▼ 4. Ref（最新の状態）を見て判断する！
+    if (isMutedRef.current) return;
+
     try {
       const audio = new Audio('/res.mp3'); 
       audio.volume = 0.5;
@@ -86,7 +83,9 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
           const newPost = payload.new as Post;
           setPosts((currentPosts) => [...currentPosts, newPost]);
           
+          // ここで playSound を呼ぶとき、Ref経由なら最新のミュート設定が反映されるお！
           playSound();
+          
           toast.success(`「${newPost.name}」さんが書き込んだお！`, {
             duration: 4000,
             position: 'bottom-right',
@@ -116,6 +115,24 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
     <div style={{ marginBottom: '50px' }}>
       <Toaster />
 
+      {/* ミュートボタン */}
+      <div style={{ marginBottom: '10px', textAlign: 'right' }}>
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          style={{
+            padding: '5px 10px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            backgroundColor: isMuted ? '#ccc' : '#4caf50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px'
+          }}
+        >
+          {isMuted ? '🔇 通知音: OFF' : '🔊 通知音: ON'}
+        </button>
+      </div>
+
       {posts.map((post, index) => {
         const postNumber = index + 1;
         return (
@@ -141,11 +158,9 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
             </div>
             
             <div style={{ marginLeft: '20px', marginTop: '5px' }}>
-              {/* ▼ formatContentでURLもリンクになる！ */}
               <div style={{ whiteSpace: 'pre-wrap', marginBottom: '10px', wordWrap: 'break-word' }}>
                 {formatContent(post.content)}
               </div>
-              
               {post.image_url && <img src={post.image_url} alt="投稿画像" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '4px' }} />}
             </div>
 
