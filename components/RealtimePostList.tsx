@@ -3,21 +3,52 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { deletePost, votePost } from '@/app/actions';
-// ▼ 1. 通知用の魔法をインポート
 import toast, { Toaster } from 'react-hot-toast';
 
-// リンク変換関数
+// ▼ リンク変換関数（ここを超改造したお！）
 function formatContent(content: string) {
-  const parts = content.split(/(>>\d+)/g);
+  // 1. 正規表現で「>>数字」または「URL」を見つけて分割する
+  // (https?://... は「http」か「https」で始まり、空白以外の文字が続くものを探す)
+  const parts = content.split(/(>>\d+|https?:\/\/[^\s]+)/g);
+
   return parts.map((part, index) => {
+    // A. アンカーの場合（>>1）
     if (part.match(/^>>\d+$/)) {
       const number = part.replace('>>', '');
       return (
-        <a key={index} href={`#post-${number}`} style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>
+        <a 
+          key={index} 
+          href={`#post-${number}`} 
+          style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
+        >
           {part}
         </a>
       );
     }
+
+    // B. URLの場合（https://...）
+    if (part.match(/^https?:\/\/[^\s]+$/)) {
+      return (
+        <a 
+          key={index} 
+          href={part}
+          target="_blank" // 新しいタブで開く
+          rel="noopener noreferrer" // セキュリティのおまじない（必須）
+          style={{ color: '#0066cc', textDecoration: 'underline', wordBreak: 'break-all' }}
+          onClick={(e) => {
+            // ▼ ここで確認ダイアログを出す！
+            const isConfirmed = window.confirm(`外部サイトへ移動しますか？\n\nリンク先：\n${part}`);
+            if (!isConfirmed) {
+              e.preventDefault(); // 「キャンセル」なら移動しない！
+            }
+          }}
+        >
+          {part}
+        </a>
+      );
+    }
+
+    // C. 普通のテキスト
     return part;
   });
 }
@@ -36,16 +67,11 @@ type Post = {
 export default function RealtimePostList({ initialPosts, threadId }: { initialPosts: Post[], threadId: string }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
 
-  // ▼ 2. 音を鳴らす関数を作るお
   const playSound = () => {
     try {
-      const audio = new Audio('/res.mp3'); // publicフォルダの音源
-      audio.volume = 0.5; // 音量は控えめに
-      audio.play().catch((e) => {
-        // ※ブラウザは「ユーザーが一度も画面を触ってない状態」での自動再生をブロックするお。
-        // これは仕様だから気にしなくていいお。
-        console.log('音の再生がブロックされたお（画面をクリックすると鳴るようになるお）', e);
-      });
+      const audio = new Audio('/res.mp3'); 
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
     } catch (e) {
       console.error(e);
     }
@@ -56,25 +82,16 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
       .channel('realtime posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` }, (payload) => {
         
-        // 新しい投稿があった時 (INSERT)
         if (payload.eventType === 'INSERT') {
           const newPost = payload.new as Post;
           setPosts((currentPosts) => [...currentPosts, newPost]);
           
-          // ▼ 3. ここで通知発射！
-          playSound(); // 音を鳴らす
+          playSound();
           toast.success(`「${newPost.name}」さんが書き込んだお！`, {
             duration: 4000,
-            position: 'bottom-right', // 右下に表示
-            style: {
-              border: '1px solid #713200',
-              padding: '16px',
-              color: '#713200',
-            },
-            iconTheme: {
-              primary: '#713200',
-              secondary: '#FFFAEE',
-            },
+            position: 'bottom-right',
+            style: { border: '1px solid #713200', padding: '16px', color: '#713200' },
+            iconTheme: { primary: '#713200', secondary: '#FFFAEE' },
           });
         }
         
@@ -97,7 +114,6 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
 
   return (
     <div style={{ marginBottom: '50px' }}>
-      {/* ▼ 4. 通知を表示するための場所（お皿）を設置 */}
       <Toaster />
 
       {posts.map((post, index) => {
@@ -125,7 +141,11 @@ export default function RealtimePostList({ initialPosts, threadId }: { initialPo
             </div>
             
             <div style={{ marginLeft: '20px', marginTop: '5px' }}>
-              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '10px' }}>{formatContent(post.content)}</div>
+              {/* ▼ formatContentでURLもリンクになる！ */}
+              <div style={{ whiteSpace: 'pre-wrap', marginBottom: '10px', wordWrap: 'break-word' }}>
+                {formatContent(post.content)}
+              </div>
+              
               {post.image_url && <img src={post.image_url} alt="投稿画像" style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '4px' }} />}
             </div>
 
