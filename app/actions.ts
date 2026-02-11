@@ -13,34 +13,46 @@ function generateID(ip: string) {
   return hash.substring(0, 8);
 }
 
-// 投稿処理
+// ... (importsなどはそのまま)
+
 export async function addPost(formData: FormData) {
+  const name = formData.get('name') as string || '名無しさん';
   const content = formData.get('content') as string;
-  const name = (formData.get('name') as string) || '名無しさん';
-  const delete_password = (formData.get('delete_password') as string) || '';
-  const thread_id = formData.get('thread_id');
-  const imageFile = formData.get('image') as File;
+  const deletePassword = formData.get('delete_password') as string;
+  const threadId = formData.get('thread_id') as string;
+  
+  // ▼▼▼ 変更点：ここではもう「URL」として受け取るだけにする！ ▼▼▼
+  const imageUrl = formData.get('image_url') as string; 
+  // ▲▲▲▲▲▲
 
+  // クライアントIPの取得（ヘッダーから）
   const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for') || '127.0.0.1';
-  const client_id = generateID(ip);
-
-  let image_url = null;
-
-  if (imageFile && imageFile.size > 0) {
-    const fileName = `${Date.now()}_${imageFile.name}`;
-    const { error } = await supabase.storage.from('images').upload(fileName, imageFile);
-    if (!error) {
-      const { data } = supabase.storage.from('images').getPublicUrl(fileName);
-      image_url = data.publicUrl;
-    }
+  const forwardedFor = headersList.get('x-forwarded-for');
+  const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
+  
+  // ID生成ロジック
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const rawId = `${ip}-${today}`;
+  let hash = 0;
+  for (let i = 0; i < rawId.length; i++) {
+    const char = rawId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
   }
+  const clientId = Math.abs(hash).toString(36).slice(0, 8).toUpperCase();
 
-  if (content && thread_id) {
-    await supabase.from('posts').insert([{ name, content, thread_id, image_url, delete_password, client_id }]);
-    // リアルタイム更新があるから revalidatePath は必須じゃないけど、念のため残しておく
-    revalidatePath(`/threads/${thread_id}`);
-  }
+  // DBに追加
+  await supabase.from('posts').insert({
+    name,
+    content,
+    client_id: clientId,
+    image_url: imageUrl || null, // URLがあれば入れる、なければnull
+    delete_password: deletePassword,
+    thread_id: threadId
+  });
+
+  revalidatePath('/');
+  revalidatePath(`/threads/${threadId}`);
 }
 
 // 削除処理
