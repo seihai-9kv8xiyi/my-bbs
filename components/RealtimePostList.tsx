@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { deletePost, votePost } from '@/app/actions';
 import toast, { Toaster } from 'react-hot-toast';
+import PushManager from './PushManager'; // ▼ 新しく作ったこれをインポート！
 
-// ... (formatContent 関数はそのまま変更なし) ...
+// リンクとか安価(>>1)を変換する関数
 function formatContent(content: string) {
   const parts = content.split(/(>>\d+|https?:\/\/[^\s]+)/g);
   return parts.map((part, index) => {
@@ -29,61 +30,17 @@ type Post = {
   client_id: string | null;
   likes: number;
   thread_id: string;
+  delete_password?: string;
 };
 
 export default function RealtimePostList({ initialPosts, threadId, threadTitle }: { initialPosts: Post[], threadId: string, threadTitle: string }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
-  
-  // ▼ 音のミュート設定
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(false);
-
-  // ▼ 通知の許可状態 ('default', 'granted', 'denied')
-  const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
-
-  // ▼ 初回ロード時に、現在の通知許可状態を確認する
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
-    }
-  }, []);
-
-  // ▼ 通知許可をリクエストする関数
-  const requestNotification = async () => {
-    if (!('Notification' in window)) {
-      alert('このブラウザは通知に対応していません。');
-      return;
-    }
-    const result = await Notification.requestPermission();
-    setPermission(result);
-    if (result === 'granted') {
-      toast.success('デスクトップ通知をONにしました！');
-      new Notification('設定完了', { body: 'こんな感じで通知が届きます' });
-    }
-  };
-
-  // ▼ デスクトップ通知を送る関数
-  const sendDesktopNotification = (post: Post) => {
-    // 許可されていて、かつブラウザが非アクティブ（裏側にある）時などに便利
-    // ※今回は常に送る設定にするお
-    if (permission === 'granted') {
-      const notif = new Notification(`【${threadTitle}】新着: ${post.name}`, {
-        body: post.content,
-        icon: post.image_url || '/icon.png', // 画像があればアイコンにする（なければ適当なパスでOK）
-        silent: isMutedRef.current, // アプリ内のミュート設定と連動させる（Chromeだとうまく効かないこともある）
-      });
-      
-      // 通知をクリックしたらウィンドウをアクティブにする
-      notif.onclick = () => {
-        window.focus();
-        notif.close();
-      };
-    }
-  };
 
   const playSound = () => {
     if (isMutedRef.current) return;
@@ -102,11 +59,14 @@ export default function RealtimePostList({ initialPosts, threadId, threadTitle }
           const newPost = payload.new as Post;
           setPosts((prev) => [...prev, newPost]);
           
-          playSound();     // 音を鳴らす
-          sendDesktopNotification(newPost); // ★ここでWindows通知を送る！
-
-          // アプリ内のトーストも一応出しておく（不要なら消してもOK）
-          toast.success(`新着: ${newPost.name}\n${newPost.content}`, { position: 'bottom-right' });
+          playSound();
+          
+          // 画面を開いている時の通知（トースト）
+          toast.success(`新着: ${newPost.name}\n${newPost.content}`, { 
+            position: 'bottom-right',
+            duration: 4000,
+            style: { borderLeft: '4px solid #5865F2', background: '#36393f', color: '#fff' }
+          });
         }
         if (payload.eventType === 'DELETE') {
           setPosts((prev) => prev.filter(p => p.id !== payload.old.id));
@@ -117,12 +77,13 @@ export default function RealtimePostList({ initialPosts, threadId, threadTitle }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [threadId, permission]); // permissionが変わったらuseEffect内の関数も最新の状態を知る必要がある
+  }, [threadId]);
 
   return (
     <div style={{ marginBottom: '50px' }}>
       <Toaster />
 
+      {/* ヘッダー部分 */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -130,7 +91,7 @@ export default function RealtimePostList({ initialPosts, threadId, threadTitle }
         borderBottom: '2px solid #c00', 
         marginBottom: '20px', 
         paddingBottom: '10px',
-        flexWrap: 'wrap', // スマホで見づらくならないように折り返し許可
+        flexWrap: 'wrap',
         gap: '10px'
       }}>
         <h1 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
@@ -140,24 +101,9 @@ export default function RealtimePostList({ initialPosts, threadId, threadTitle }
           </span>
         </h1>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {/* ▼ デスクトップ通知許可ボタン */}
-          {permission !== 'granted' && (
-            <button
-              onClick={requestNotification}
-              style={{
-                padding: '5px 10px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                backgroundColor: '#0070f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px'
-              }}
-            >
-              🔔 通知を許可する
-            </button>
-          )}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* ▼ ここにプッシュ通知登録ボタンを配置！ */}
+          <PushManager />
 
           {/* ミュートボタン */}
           <button
@@ -169,7 +115,8 @@ export default function RealtimePostList({ initialPosts, threadId, threadTitle }
               backgroundColor: isMuted ? '#999' : '#4caf50',
               color: 'white',
               border: 'none',
-              borderRadius: '5px'
+              borderRadius: '5px',
+              height: 'fit-content'
             }}
           >
             {isMuted ? '🔇' : '🔊'}
@@ -177,8 +124,8 @@ export default function RealtimePostList({ initialPosts, threadId, threadTitle }
         </div>
       </div>
 
+      {/* 投稿一覧部分 */}
       {posts.map((post, index) => {
-        // ... (投稿表示部分はそのまま変更なし) ...
         const postNumber = index + 1;
         return (
           <div key={post.id} id={`post-${postNumber}`} style={{ marginBottom: '15px', borderBottom: '1px dotted #ccc', paddingBottom: '10px' }}>
