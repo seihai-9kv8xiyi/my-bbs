@@ -49,7 +49,7 @@ export default function PushManager() {
     // サーバーに保存！
     await subscribeUser(JSON.parse(JSON.stringify(subscription)));
     setIsSubscribed(true);
-    alert('これで閉じてても通知が来るお！');
+    alert('閉じていても通知が送られます！');
   };
 
   if (isSubscribed) {
