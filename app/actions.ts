@@ -3,8 +3,9 @@
 import { supabase } from '@/lib/supabaseClient';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import webPush from 'web-push';
+import webPush from 'web-push'; // ← これがないとエラーになるお！
 
+// 投稿削除
 export async function deletePost(formData: FormData) {
   const postId = formData.get('post_id');
   const password = formData.get('password');
@@ -23,8 +24,8 @@ export async function deletePost(formData: FormData) {
   }
 }
 
+// いいね機能
 export async function votePost(postId: number, threadId: string) {
-  // まず現在のいいね数を取得
   const { data: post } = await supabase
     .from('posts')
     .select('likes')
@@ -42,6 +43,7 @@ export async function votePost(postId: number, threadId: string) {
   }
 }
 
+// スレッド作成
 export async function createThread(formData: FormData) {
   const title = formData.get('title') as string;
 
@@ -51,13 +53,13 @@ export async function createThread(formData: FormData) {
   revalidatePath('/');
 }
 
-// ▼ ここからが書き込み＆通知のメイン部分
+// ▼▼▼ 書き込み＆通知のメイン部分 ▼▼▼
 export async function addPost(formData: FormData) {
   const name = formData.get('name') as string || '名無しさん';
   const content = formData.get('content') as string;
   const deletePassword = formData.get('delete_password') as string;
   const threadId = formData.get('thread_id') as string;
-  const imageUrl = formData.get('image_url') as string; // URLとして受け取る
+  const imageUrl = formData.get('image_url') as string;
 
   // IPアドレスからIDを生成
   const headersList = await headers();
@@ -84,9 +86,8 @@ export async function addPost(formData: FormData) {
     thread_id: threadId
   });
 
-  // ▼▼▼ プッシュ通知を一斉送信 ▼▼▼
+  // ▼▼▼ プッシュ通知を一斉送信（スレッド名付き） ▼▼▼
   try {
-    // VAPIDキーが設定されているか確認
     if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       
       webPush.setVapidDetails(
@@ -95,12 +96,22 @@ export async function addPost(formData: FormData) {
         process.env.VAPID_PRIVATE_KEY
       );
 
+      // スレッドのタイトルを取得
+      const { data: threadData } = await supabase
+        .from('threads')
+        .select('title')
+        .eq('id', threadId)
+        .single();
+      
+      const threadTitle = threadData?.title || 'スレッド';
+
       // DBから登録者リストを取得
       const { data: subscriptions } = await supabase.from('push_subscriptions').select('*');
 
       if (subscriptions) {
+        // 通知の中身を作成
         const notificationPayload = JSON.stringify({
-          title: `【${threadId}】新着: ${name}`,
+          title: `【${threadTitle}】新着: ${name}`,
           body: content,
         });
 
@@ -127,7 +138,6 @@ export async function addPost(formData: FormData) {
     }
   } catch (error) {
     console.error('通知送信エラー:', error);
-    // 通知のエラーで投稿自体を止めないように、ここはエラーを握りつぶして進むお
   }
   // ▲▲▲ 通知処理終わり ▲▲▲
 
@@ -135,9 +145,8 @@ export async function addPost(formData: FormData) {
   revalidatePath(`/threads/${threadId}`);
 }
 
-// ▼ 通知登録用のアクション
+// 通知登録用のアクション
 export async function subscribeUser(sub: any) {
-  // バリデーション：必要なデータがない場合は何もしない
   if (!sub || !sub.endpoint || !sub.keys || !sub.keys.auth || !sub.keys.p256dh) {
     return;
   }
