@@ -51,7 +51,7 @@ export default function PostForm({ threadId }: { threadId: string }) {
     // 3. 完了処理
     form.reset(); // フォームを空にする
     setIsUploading(false);
-    toast.success('書き込み完了しました！');
+    toast.success('書き込みが完了しました！');
   };
 
   return (

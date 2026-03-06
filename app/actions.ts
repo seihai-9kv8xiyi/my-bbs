@@ -110,9 +110,11 @@ export async function addPost(formData: FormData) {
 
       if (subscriptions) {
         // 通知の中身を作成
+        // ★ threadId を追加して小人に教えるお！
         const notificationPayload = JSON.stringify({
           title: `【${threadTitle}】新着: ${name}`,
           body: content,
+          threadId: threadId, 
         });
 
         // 全員に送る
@@ -159,5 +161,7 @@ export async function subscribeUser(sub: any) {
   
   if (error) {
     console.error('サブスクリプション保存エラー:', error);
+    
   }
 }
+

@@ -4,15 +4,17 @@ self.addEventListener('push', function (event) {
   const data = event.data.json();
   const title = data.title || '新着メッセージ';
   const body = data.body || '新しい書き込みがあるお！';
-  const icon = '/icon.png'; // アイコン画像があれば
+  const threadId = data.threadId || 'unknown'; // サーバーからスレIDを受け取る
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body: body,
-      icon: icon,
-      vibrate: [100, 50, 100], // ブルブル震える
+      icon: '/icon.png',
+      vibrate: [100, 50, 100],
+      tag: `thread-${threadId}`, // ★これだお！同じスレIDなら上書きしてまとめるお！
+      renotify: true, // ★上書きした時にもう一度ブルッと震わせる（不要なら false にするお）
       data: {
-        url: self.location.origin // クリックしたらトップページへ
+        url: `${self.location.origin}/threads/${threadId}` // ★タップした時、トップじゃなくて直接スレッドへ飛ぶようにしたお！
       }
     })
   );
