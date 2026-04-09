@@ -4,6 +4,12 @@ import Link from 'next/link';
 import RealtimePostList from '@/components/RealtimePostList';
 import PostForm from '@/components/PostForm'; // ▼ これをインポート！
 
+const boardsInfo: Record<string, string> = {
+  'news': 'ニュース速報板',
+  'game': 'ゲーム板',
+  'lounge': 'ラウンジ（雑談）'
+};
+
 export default async function ThreadPage({ params }: { params: { id: string } }) {
   const { id } = await params;
 

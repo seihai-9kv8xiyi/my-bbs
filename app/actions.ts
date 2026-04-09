@@ -43,13 +43,21 @@ export async function votePost(postId: number, threadId: string) {
   }
 }
 
-// スレッド作成
+/// ▼▼▼ app/actions.ts のスレ立て機能をこれに上書き！ ▼▼▼
+// ⚠️ 引数に boardId が増えているのがポイントだお！
+// ▼▼▼ app/actions.ts のスレ立て機能をこれに上書きするお！ ▼▼▼
 export async function createThread(formData: FormData) {
   const title = formData.get('title') as string;
+  // ここでフロントから送られてきた board_id を受け取るお！
+  const boardId = formData.get('board_id') as string || 'lounge'; 
 
   if (!title) return;
 
-  await supabase.from('threads').insert({ title });
+  // DBにタイトルと board_id を一緒に保存するお！
+  await supabase.from('threads').insert({ title, board_id: boardId });
+  
+  // キャッシュをクリアするお！
+  revalidatePath(`/boards/${boardId}`);
   revalidatePath('/');
 }
 
