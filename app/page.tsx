@@ -1,5 +1,6 @@
 import Link from 'next/link';
-
+import { submitInquiry } from '@/app/actions';
+import ContactForm from '@/components/ContactForm';
 // ▼ ここに好きな板を定義するお！後から増やせるお。
 const boards = [
   { id: 'news', name: 'ニュース速報板', description: '最新のニュースや時事ネタについて語る板です' },
@@ -31,6 +32,16 @@ export default function Home() {
             <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{board.description}</p>
           </Link>
         ))}
+      </div>
+      <div style={{ marginTop: '50px', padding: '20px', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #ddd' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '10px', color: '#333' }}>📮 管理人へのお問い合わせ</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+          削除依頼や、追加してほしい板の要望はこちらへだお！
+        </p>
+        
+        {/* ▼ 長かったフォームがたったの1行に！スッキリ！ ▼ */}
+        <ContactForm />
+        
       </div>
     </div>
   );
