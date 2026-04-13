@@ -1,8 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-// addPost のインポートは不要になったので消してOK（PostFormの中で使ってるから）
 import RealtimePostList from '@/components/RealtimePostList';
-import PostForm from '@/components/PostForm'; // ▼ これをインポート！
+import PostForm from '@/components/PostForm';
 
 const boardsInfo: Record<string, string> = {
   'news': 'ニュース速報板',
@@ -18,9 +17,30 @@ export default async function ThreadPage({ params }: { params: { id: string } })
 
   if (!thread) return <div>スレッドが見つかりません</div>;
 
+  // ▼ ここを追加！データベースから板のIDを取得して、名前を辞書から引くお！
+  // （昔のデータで board_id が空っぽの場合は 'lounge' 扱いにする安全設計だお）
+  const boardId = thread.board_id || 'lounge';
+  const boardName = boardsInfo[boardId] || '板';
+
   return (
     <main style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <Link href="/" style={{ color: 'blue', textDecoration: 'underline' }}>← 一覧に戻る</Link>
+      
+      {/* ▼▼▼ ここを書き換えたお！「板に戻る」と「トップに戻る」を並べるお！ ▼▼▼ */}
+      <div style={{ marginBottom: '20px', display: 'flex', gap: '15px' }}>
+        <Link href={`/boards/${boardId}`} style={{ color: '#0066cc', textDecoration: 'underline' }}>
+          ← {boardName}に戻る
+        </Link>
+        <Link href="/" style={{ color: '#666', textDecoration: 'underline' }}>
+          板一覧(トップ)へ
+        </Link>
+      </div>
+      
+      {/* ▼ スレッドのタイトルも一番上に表示するお！ */}
+      <h1 style={{ borderBottom: '2px solid #c00', paddingBottom: '10px', fontSize: '24px' }}>
+        {thread.title}
+      </h1>
+      {/* ▲▲▲ 書き換えはここまでだお！ ▲▲▲ */}
+
       
       <RealtimePostList 
         initialPosts={posts || []} 
@@ -28,7 +48,6 @@ export default async function ThreadPage({ params }: { params: { id: string } })
         threadTitle={thread.title} 
       />
 
-      {/* ▼ 今までの長い <form>... </form> の塊を、この1行に置き換えるお！ ▼ */}
       <PostForm threadId={id} />
       
     </main>
