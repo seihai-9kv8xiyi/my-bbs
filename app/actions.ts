@@ -178,7 +178,7 @@ export async function submitInquiry(formData: FormData) {
   const name = formData.get('name') as string || '名無しさん';
   const message = formData.get('message') as string;
 
-  if (!message) return { success: false, error: 'メッセージが空だお' };
+  if (!message) return { success: false, error: 'メッセージが空です' };
 
   // 1. まずは今まで通りSupabaseにも保存しておく（バックアップとして）
   await supabase.from('inquiries').insert({ name, message });
