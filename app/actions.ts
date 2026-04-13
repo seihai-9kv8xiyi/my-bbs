@@ -196,6 +196,6 @@ export async function submitInquiry(formData: FormData) {
     return { success: true };
   } catch (error) {
     console.error('メール送信エラー:', error);
-    return { success: false, error: 'メールが送れなかったお…' };
+    return { success: false, error: 'メール送信に失敗しました…' };
   }
 }
