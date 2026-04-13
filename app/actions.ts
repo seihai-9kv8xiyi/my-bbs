@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import webPush from 'web-push'; // ← これがないとエラーになるお！
 import { Resend } from 'resend';
-const resend = new Resend(process.env.RESEND_API_KEY);
 // 投稿削除
 export async function deletePost(formData: FormData) {
   const postId = formData.get('post_id');
@@ -178,24 +177,25 @@ export async function submitInquiry(formData: FormData) {
   const name = formData.get('name') as string || '名無しさん';
   const message = formData.get('message') as string;
 
-  if (!message) return { success: false, error: 'メッセージが空です' };
+  if (!message) return { success: false, error: 'メッセージが空だお' };
 
-  // 1. まずは今まで通りSupabaseにも保存しておく（バックアップとして）
   await supabase.from('inquiries').insert({ name, message });
 
   try {
-    // 2. Resendを使ってメールを送信するお！
+    // ✅ ここだお！「使う直前」に関数の中で準備するお！
+    // 念のため、キーがない時は空文字にする安全対策（|| ''）もつけておくお
+    const resend = new Resend(process.env.RESEND_API_KEY || '');
+
     await resend.emails.send({
-      from: 'onboarding@resend.dev', // ※Resendのテスト用アドレス（固定）
-      to: 'goldexperiencerequiem2023@gmail.com', // ⚠️ ここを君が普段使っているメアドに書き換えるお！
+      from: 'onboarding@resend.dev',
+      to: '君のメールアドレス@example.com', // 自分のメアドに直すお
       subject: `【掲示板】${name}さんからのお問い合わせ`,
       text: message
     });
     
-    // 成功したら画面側に true を返すお
     return { success: true };
   } catch (error) {
     console.error('メール送信エラー:', error);
-    return { success: false, error: 'メール送信に失敗しました…' };
+    return { success: false, error: 'メールが送れなかったお…' };
   }
 }
