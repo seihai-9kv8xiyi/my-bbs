@@ -48,13 +48,12 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
       <div>
         {threads && threads.length > 0 ? (
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            {threads.map((thread, index) => (
-              <li key={thread.id} style={{ marginBottom: '15px', fontSize: '18px' }}>
-                <span style={{ color: '#666', marginRight: '10px' }}>{index + 1}:</span>
+            {threads.map((thread) => (
+              <div key={thread.id} style={{ marginBottom: '10px' )}>
                 <Link href={`/threads/${thread.id}`} style={{ color: '#0066cc', textDecoration: 'underline' }}>
-                  {thread.title}
+                  {thread.title}({thread.posts?.length || 0})
                 </Link>
-              </li>
+              </div>
             ))}
           </ul>
         ) : (
