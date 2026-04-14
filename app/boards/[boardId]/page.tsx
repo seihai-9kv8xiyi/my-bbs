@@ -54,7 +54,7 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
                   {thread.title}({thread.posts?.length || 0})
                 </Link>
               </div>
-            ))}
+        ))}
           </ul>
         ) : (
           <p style={{ color: '#666' }}>まだスレッドがないです。さっさとスレを建ててクレメンス。</p>
