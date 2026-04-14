@@ -188,7 +188,7 @@ export async function submitInquiry(formData: FormData) {
 
     await resend.emails.send({
       from: 'onboarding@resend.dev',
-      to: '君のメールアドレス@example.com', // 自分のメアドに直すお
+      to: 'goldexperiencerequiem2023@gmail.com', // 自分のメアドに直すお
       subject: `【掲示板】${name}さんからのお問い合わせ`,
       text: message
     });
