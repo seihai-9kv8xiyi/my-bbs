@@ -49,7 +49,7 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
         {threads && threads.length > 0 ? (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {threads.map((thread) => (
-              <div key={thread.id} style={{ marginBottom: '10px' )}>
+              <div key={thread.id} style={{ marginBottom: '10px' }}>
                 <Link href={`/threads/${thread.id}`} style={{ color: '#0066cc', textDecoration: 'underline' }}>
                   {thread.title}({thread.posts?.length || 0})
                 </Link>
