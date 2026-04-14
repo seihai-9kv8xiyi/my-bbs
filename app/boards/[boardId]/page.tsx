@@ -19,7 +19,7 @@ export default async function BoardPage({ params }: { params: Promise<{ boardId:
   // この板（board_id）に属するスレッドだけを取得するお！
   const { data: threads } = await supabase
     .from('threads')
-    .select('*')
+    .select('*,posts(id)')
     .eq('board_id', boardId)
     .order('created_at', { ascending: false });
 
