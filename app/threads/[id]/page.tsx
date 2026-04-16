@@ -1,55 +1,65 @@
 import { supabase } from '@/lib/supabaseClient';
+import { createThread } from '@/app/actions';
 import Link from 'next/link';
-import RealtimePostList from '@/components/RealtimePostList';
-import PostForm from '@/components/PostForm';
 
+// 板の名前の辞書だお
 const boardsInfo: Record<string, string> = {
   'news': 'ニュース速報板',
   'game': 'ゲーム板',
   'lounge': 'ラウンジ（雑談）'
 };
 
-export default async function ThreadPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
+export const revalidate = 0; // 常に最新を取得するお
 
-  const { data: thread } = await supabase.from('threads').select('*').eq('id', id).single();
-  const { data: posts } = await supabase.from('posts').select('*').eq('thread_id', id).order('created_at', { ascending: true });
+// URLから [boardId] を受け取るお
+export default async function BoardPage({ params }: { params: Promise<{ boardId: string }> }) {
+  const { boardId } = await params;
+  const boardName = boardsInfo[boardId] || '名無し板';
 
-  if (!thread) return <div>スレッドが見つかりません</div>;
-
-  // ▼ ここを追加！データベースから板のIDを取得して、名前を辞書から引くお！
-  // （昔のデータで board_id が空っぽの場合は 'lounge' 扱いにする安全設計だお）
-  const boardId = thread.board_id || 'lounge';
-  const boardName = boardsInfo[boardId] || '板';
+  // この板（board_id）に属するスレッドだけを取得するお！
+  const { data: threads } = await supabase
+    .from('threads')
+    .select('*,posts(id)')
+    .eq('board_id', boardId)
+    .order('created_at', { ascending: false });
 
   return (
-    <main style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      
-      {/* ▼▼▼ ここを書き換えたお！「板に戻る」と「トップに戻る」を並べるお！ ▼▼▼ */}
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '15px' }}>
-        <Link href={`/boards/${boardId}`} style={{ color: '#0066cc', textDecoration: 'underline' }}>
-          ← {boardName}に戻る
-        </Link>
-        <Link href="/" style={{ color: '#666', textDecoration: 'underline' }}>
-          板一覧(トップ)へ
-        </Link>
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <Link href="/" style={{ color: '#0066cc', textDecoration: 'underline' }}>← 板一覧に戻る</Link>
       </div>
       
-      {/* ▼ スレッドのタイトルも一番上に表示するお！ */}
-      <h1 style={{ borderBottom: '2px solid #c00', paddingBottom: '10px', fontSize: '24px' }}>
-        {thread.title}
+      <h1 style={{ borderBottom: '2px solid #c00', paddingBottom: '10px', color: '#333' }}>
+        {boardName}
       </h1>
-      {/* ▲▲▲ 書き換えはここまでだお！ ▲▲▲ */}
 
-      
-      <RealtimePostList 
-        initialPosts={posts || []} 
-        threadId={id} 
-        threadTitle={thread.title} 
-      />
+      {/* スレ立てフォーム（この板専用！） */}
+      <div style={{ background: '#f0f0f0', padding: '15px', borderRadius: '8px', marginBottom: '30px' }}>
+        <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>新規スレッド作成</h3>
+        <form action={createThread} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {/* ▼ ここで「どの板に立てるか」をこっそり送っているお！ */}
+          <input type="hidden" name="board_id" value={boardId} />
+          <input type="text" name="title" placeholder="スレッドのタイトル" required style={{ flex: 1, padding: '8px', minWidth: '200px' }} />
+          <button type="submit" style={{ padding: '8px 15px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>スレ立て</button>
+        </form>
+      </div>
 
-      <PostForm threadId={id} />
-      
-    </main>
+      {/* スレッド一覧 */}
+      <div>
+        {threads && threads.length > 0 ? (
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {threads.map((thread) => (
+              <div key={thread.id} style={{ marginBottom: '10px' }}>
+                <Link href={`/threads/${thread.id}`} style={{ color: '#0066cc', textDecoration: 'underline' }}>
+                  {thread.title}({thread.posts?.length || 0})
+                </Link>
+              </div>
+        ))}
+          </ul>
+        ) : (
+          <p style={{ color: '#666' }}>まだスレッドがないです。さっさとスレを建ててクレメンス。</p>
+        )}
+      </div>
+    </div>
   );
 }
