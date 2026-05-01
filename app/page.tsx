@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h1 style={{ borderBottom: '2px solid #c00', paddingBottom: '10px', color: '#333' }}>
-        MNSKちゃんねる
+        ＠ちゃんねる
       </h1>
       <p style={{ color: '#666', marginBottom: '20px' }}>好きな板を選んでください！</p>
       
@@ -37,7 +37,7 @@ export default function Home() {
       <div style={{ marginTop: '50px', padding: '20px', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #ddd' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '10px', color: '#333' }}>📮 管理人へのお問い合わせ</h2>
         <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
-          削除依頼や、追加してほしい板の要望はこちらへだお！
+          削除依頼や、追加してほしい板の要望はこちら！
         </p>
         
         {/* ▼ 長かったフォームがたったの1行に！スッキリ！ ▼ */}

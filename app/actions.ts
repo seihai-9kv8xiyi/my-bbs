@@ -177,7 +177,7 @@ export async function submitInquiry(formData: FormData) {
   const name = formData.get('name') as string || '名無しさん';
   const message = formData.get('message') as string;
 
-  if (!message) return { success: false, error: 'メッセージが空だお' };
+  if (!message) return { success: false, error: 'メッセージが空です' };
 
   await supabase.from('inquiries').insert({ name, message });
 
@@ -196,6 +196,6 @@ export async function submitInquiry(formData: FormData) {
     return { success: true };
   } catch (error) {
     console.error('メール送信エラー:', error);
-    return { success: false, error: 'メールが送れなかったお…' };
+    return { success: false, error: '送信に失敗しました…' };
   }
 }

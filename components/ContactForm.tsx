@@ -17,13 +17,13 @@ export default function ContactForm() {
     const result = await submitInquiry(formData);
 
     if (result?.success) {
-      setStatus('✅ 管理人にメッセージを送ったお！');
+      setStatus('✅ 管理人にメッセージを送りました！');
       formRef.current?.reset(); // 🌟 ここで入力欄を空っぽにするお！
       
       // 5秒後に「送ったお！」メッセージを消す気配り
       setTimeout(() => setStatus(''), 5000);
     } else {
-      setStatus('❌ 送信に失敗したお…');
+      setStatus('❌ 送信に失敗しました…');
     }
   };
 
@@ -37,7 +37,7 @@ export default function ContactForm() {
       />
       <textarea 
         name="message" 
-        placeholder="お問い合わせ内容を書いてね" 
+        placeholder="お問い合わせ内容を書いてください" 
         required 
         rows={4} 
         style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', resize: 'vertical' }}
