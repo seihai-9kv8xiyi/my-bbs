@@ -11,7 +11,7 @@ export default function ContactForm() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = async (formData: FormData) => {
-    setStatus('送信中だお...');
+    setStatus('送信中...');
     
     // サーバーのプログラム（actions.ts）を呼び出す
     const result = await submitInquiry(formData);
@@ -47,7 +47,7 @@ export default function ContactForm() {
         type="submit" 
         style={{ padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
       >
-        送信するお！
+        送信
       </button>
 
       {/* ステータスメッセージがある時だけ表示するお！ */}
