@@ -6,7 +6,8 @@ import Link from 'next/link';
 const boardsInfo: Record<string, string> = {
   'news': 'ニュース速報板',
   'game': 'ゲーム板',
-  'lounge': 'ラウンジ（雑談）'
+  'lounge': 'ラウンジ（雑談）',
+  'anker':'安価用板'
 };
 
 export const revalidate = 0; // 常に最新を取得するお

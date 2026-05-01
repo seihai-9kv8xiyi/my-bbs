@@ -6,6 +6,7 @@ const boards = [
   { id: 'news', name: 'ニュース速報板', description: '最新のニュースや時事ネタについて語る板です' },
   { id: 'game', name: 'ゲーム板', description: 'ゲーム全般の話題、攻略、対戦募集はこちら' },
   { id: 'lounge', name: 'ラウンジ（雑談）', description: '何でもありの雑談スペース。旧スレッドはここにありまする。' },
+  { id: 'anker', name: '安価用板', description: '安価用のスレッドを立てる板です'}
 ];
 
 export default function Home() {

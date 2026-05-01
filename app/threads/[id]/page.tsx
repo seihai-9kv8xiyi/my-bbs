@@ -6,7 +6,8 @@ import PostForm from '@/components/PostForm';
 const boardsInfo: Record<string, string> = {
   'news': 'ニュース速報板',
   'game': 'ゲーム板',
-  'lounge': 'ラウンジ（雑談）'
+  'lounge': 'ラウンジ（雑談）',
+  'anker':'安価用板'
 };
 
 export default async function ThreadPage({ params }: { params: { id: string } }) {
